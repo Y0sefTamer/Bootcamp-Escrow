@@ -19,4 +19,14 @@ contract Escrow {
         arbiter = _arbiter;
         amount = msg.value;
     }
+
+    function approvedByBuyer() external {
+        require(msg.sender == buyer, "Only buyer can approve");
+        buyerApproved = true;
+    }
+
+    function approvedBySeller() external {
+        require(msg.sender == seller, "Only seller can approve");
+        sellerApproved = true;
+    }
 }
