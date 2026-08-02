@@ -111,4 +111,23 @@ contract EscrowTest is Test {
         vm.expectRevert(Escrow.Escrow__TransferFailed.selector);
         escrowWithRejectEther.approvedBySeller();
     }
+
+     /*//////////////////////////
+             Raise dispute
+    //////////////////////////*/
+    function testRaiseDisputeByBuyer() public {
+        vm.prank(buyer);
+        escrow.raiseDispute();
+        assertTrue(escrow.isDisputedRaised());
+    }
+    function testRaiseDisputeBySeller() public {
+        vm.prank(seller);
+        escrow.raiseDispute();
+        assertTrue(escrow.isDisputedRaised());
+    }
+    function testRaiseDisputeNotAuthorized() public {
+        vm.prank(arbiter);
+        vm.expectRevert(Escrow.Escrow__NotAuthorizedToRaiseDispute.selector);
+        escrow.raiseDispute();
+    }
 }
