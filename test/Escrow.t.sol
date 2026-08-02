@@ -17,6 +17,10 @@ contract EscrowTest is Test {
         escrow = new Escrow{value: AMOUNT}(buyer, seller, arbiter);
     }
 
+    /*//////////////////////////
+             Constructor
+    //////////////////////////*/
+
     function testConstructor() public view {
         assertEq(escrow.buyer(), buyer);
         assertEq(escrow.seller(), seller);
@@ -26,5 +30,35 @@ contract EscrowTest is Test {
         assertFalse(escrow.buyerApproved());
         assertFalse(escrow.sellerApproved());
         assertFalse(escrow.isDisputedRaised());
+    }
+
+    /*//////////////////////////
+            Approve by buyer
+    //////////////////////////*/
+    function testApprovedByBuyer() public {
+        vm.prank(buyer);
+        escrow.approvedByBuyer();
+        assertTrue(escrow.buyerApproved());
+    }
+
+    function testApprovedByBuyerNotBuyer() public {
+        vm.prank(seller);
+        vm.expectRevert(Escrow.Escrow__NotBuyer.selector);
+        escrow.approvedByBuyer();
+    }
+
+    /*//////////////////////////
+            Approve by seller
+    //////////////////////////*/
+    function testApprovedBySeller() public {
+        vm.prank(seller);
+        escrow.approvedBySeller();
+        assertTrue(escrow.sellerApproved());
+    }
+
+    function testApprovedBySellerNotSeller() public {
+        vm.prank(buyer);
+        vm.expectRevert(Escrow.Escrow__NotSeller.selector);
+        escrow.approvedBySeller();
     }
 }
