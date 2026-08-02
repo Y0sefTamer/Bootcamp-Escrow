@@ -174,6 +174,7 @@ contract EscrowTest is Test {
         vm.expectRevert(Escrow.Escrow__DisputeNotRaised.selector);
         escrow.resolveDispute(true);
     }
+
     function testResolveDisputeRevertTranferFailedToSeller() public {
         RejectEther rejectEther = new RejectEther();
         Escrow escrowWithRejectEther = new Escrow{value: AMOUNT}(buyer, address(rejectEther), arbiter);
