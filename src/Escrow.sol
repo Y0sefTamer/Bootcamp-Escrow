@@ -23,10 +23,19 @@ contract Escrow {
     function approvedByBuyer() external {
         require(msg.sender == buyer, "Only buyer can approve");
         buyerApproved = true;
+        releaseIfAgreed();
     }
 
     function approvedBySeller() external {
         require(msg.sender == seller, "Only seller can approve");
         sellerApproved = true;
+        releaseIfAgreed();
     }
+
+    function releaseIfAgreed() internal {
+        if(buyerApproved && sellerApproved && !isDisputedRaised) {
+            (bool success, ) = seller.call{value: amount}("");
+            require(success, "Transfer to seller failed");
+        }
+    }   
 }
