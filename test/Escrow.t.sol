@@ -3,6 +3,10 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {Escrow} from "../src/Escrow.sol";
+///@dev The RejectEther contract is used to test the Escrow contract's ability to reject ether transfers.
+contract RejectEther {
+    // empty contract intentionally to reject ether transfers
+}
 
 contract EscrowTest is Test {
     Escrow public escrow;
@@ -73,5 +77,38 @@ contract EscrowTest is Test {
         escrow.approvedBySeller();
         assertEq(address(escrow).balance, 0);
         assertEq(seller.balance, sellerBalanceBefore + AMOUNT);
+    }
+    function testReleaseIfAgreedNotApprovedWhenDisputRaised() public {
+        vm.prank(buyer);
+        escrow.approvedByBuyer();
+        vm.prank(buyer);
+        escrow.raiseDispute();
+        vm.prank(seller);
+        escrow.approvedBySeller();
+        assertTrue(escrow.isDisputedRaised());
+        assertTrue(escrow.buyerApproved());
+        assertTrue(escrow.sellerApproved());
+        assertEq(address(escrow).balance, AMOUNT);
+    }
+    function testReleaseIfAgreedNotApprovedWhenDisputRaisedBySeller() public {
+        vm.prank(seller);
+        escrow.approvedBySeller();
+        vm.prank(seller);
+        escrow.raiseDispute();
+        vm.prank(buyer);
+        escrow.approvedByBuyer();
+        assertTrue(escrow.isDisputedRaised());
+        assertTrue(escrow.buyerApproved());
+        assertTrue(escrow.sellerApproved());
+        assertEq(address(escrow).balance, AMOUNT);
+    }
+    function testReleaseIfAgreedRevertWhenTransferFailed() public {
+        RejectEther rejectEther = new RejectEther();
+        Escrow escrowWithRejectEther = new Escrow{value: AMOUNT}(buyer, address(rejectEther), arbiter);
+        vm.prank(buyer);
+        escrowWithRejectEther.approvedByBuyer();
+        vm.prank(address(rejectEther));
+        vm.expectRevert(Escrow.Escrow__TransferFailed.selector);
+        escrowWithRejectEther.approvedBySeller();
     }
 }
