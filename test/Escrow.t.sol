@@ -3,10 +3,12 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {Escrow} from "../src/Escrow.sol";
+
 ///@dev The RejectEther contract is used to test the Escrow contract's ability to reject ether transfers.
 contract RejectEther {
     // empty contract intentionally to reject ether transfers
-}
+
+    }
 
 contract EscrowTest is Test {
     Escrow public escrow;
@@ -78,6 +80,7 @@ contract EscrowTest is Test {
         assertEq(address(escrow).balance, 0);
         assertEq(seller.balance, sellerBalanceBefore + AMOUNT);
     }
+
     function testReleaseIfAgreedNotApprovedWhenDisputRaised() public {
         vm.prank(buyer);
         escrow.approvedByBuyer();
@@ -90,6 +93,7 @@ contract EscrowTest is Test {
         assertTrue(escrow.sellerApproved());
         assertEq(address(escrow).balance, AMOUNT);
     }
+
     function testReleaseIfAgreedNotApprovedWhenDisputRaisedBySeller() public {
         vm.prank(seller);
         escrow.approvedBySeller();
@@ -102,6 +106,7 @@ contract EscrowTest is Test {
         assertTrue(escrow.sellerApproved());
         assertEq(address(escrow).balance, AMOUNT);
     }
+
     function testReleaseIfAgreedRevertWhenTransferFailed() public {
         RejectEther rejectEther = new RejectEther();
         Escrow escrowWithRejectEther = new Escrow{value: AMOUNT}(buyer, address(rejectEther), arbiter);
@@ -112,7 +117,7 @@ contract EscrowTest is Test {
         escrowWithRejectEther.approvedBySeller();
     }
 
-     /*//////////////////////////
+    /*//////////////////////////
              Raise dispute
     //////////////////////////*/
     function testRaiseDisputeByBuyer() public {
@@ -120,14 +125,62 @@ contract EscrowTest is Test {
         escrow.raiseDispute();
         assertTrue(escrow.isDisputedRaised());
     }
+
     function testRaiseDisputeBySeller() public {
         vm.prank(seller);
         escrow.raiseDispute();
         assertTrue(escrow.isDisputedRaised());
     }
+
     function testRaiseDisputeNotAuthorized() public {
         vm.prank(arbiter);
         vm.expectRevert(Escrow.Escrow__NotAuthorizedToRaiseDispute.selector);
         escrow.raiseDispute();
+    }
+
+    /*//////////////////////////
+             Resolve dispute
+    //////////////////////////*/
+    function testResolveDisputeReleaseToSeller() public {
+        vm.prank(buyer);
+        escrow.raiseDispute();
+        uint256 sellerBalanceBefore = seller.balance;
+        vm.prank(arbiter);
+        escrow.resolveDispute(true);
+        assertEq(address(escrow).balance, 0);
+        assertEq(seller.balance, sellerBalanceBefore + AMOUNT);
+    }
+
+    function testResolveDisputeReleaseToBuyer() public {
+        vm.prank(buyer);
+        escrow.raiseDispute();
+        uint256 buyerBalanceBefore = buyer.balance;
+        vm.prank(arbiter);
+        escrow.resolveDispute(false);
+        assertEq(address(escrow).balance, 0);
+        assertEq(buyer.balance, buyerBalanceBefore + AMOUNT);
+    }
+
+    function testResolveDisputeNotArbiter() public {
+        vm.prank(buyer);
+        escrow.raiseDispute();
+        vm.prank(buyer);
+        vm.expectRevert(Escrow.Escrow__NotArbiter.selector);
+        escrow.resolveDispute(true);
+    }
+
+    function testResolveDisputRevertWhenNoDisputeRaised() public {
+        vm.prank(arbiter);
+        vm.expectRevert(Escrow.Escrow__DisputeNotRaised.selector);
+        escrow.resolveDispute(true);
+    }
+    function testResolveDisputeRevertTranferFailedToSeller() public {
+        RejectEther rejectEther = new RejectEther();
+        Escrow escrowWithRejectEther = new Escrow{value: AMOUNT}(buyer, address(rejectEther), arbiter);
+        vm.prank(buyer);
+        escrowWithRejectEther.raiseDispute();
+        vm.prank(arbiter);
+        vm.expectRevert(Escrow.Escrow__TransferFailed.selector);
+        escrowWithRejectEther.resolveDispute(true);
     }
 }
