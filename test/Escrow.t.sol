@@ -16,4 +16,15 @@ contract EscrowTest is Test {
     function setUp() public {
         escrow = new Escrow{value: AMOUNT}(buyer, seller, arbiter);
     }
+
+    function testConstructor() public view {
+        assertEq(escrow.buyer(), buyer);
+        assertEq(escrow.seller(), seller);
+        assertEq(escrow.arbiter(), arbiter);
+        assertEq(escrow.amount(), AMOUNT);
+        assertEq(address(escrow).balance, AMOUNT);
+        assertFalse(escrow.buyerApproved());
+        assertFalse(escrow.sellerApproved());
+        assertFalse(escrow.isDisputedRaised());
+    }
 }
