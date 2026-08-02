@@ -38,4 +38,24 @@ contract Escrow {
             require(success, "Transfer to seller failed");
         }
     }   
+
+    function raiseDispute() external {
+        require(msg.sender == buyer || msg.sender == seller, "Only buyer or seller can raise dispute");
+        isDisputedRaised = true;
+    }
+
+    function resolveDispute(bool releaseToSeller) external {
+        require(msg.sender == arbiter, "Only arbiter can resolve dispute");
+        require(isDisputedRaised, "No dispute to resolve");
+
+        if(releaseToSeller) {
+            (bool success, ) = seller.call{value: amount}("");
+            require(success, "Transfer to seller failed");
+        } else {
+            (bool success, ) = buyer.call{value: amount}("");
+            require(success, "Transfer to buyer failed");
+        }
+
+        isDisputedRaised = false;
+    }   
 }
