@@ -61,4 +61,17 @@ contract EscrowTest is Test {
         vm.expectRevert(Escrow.Escrow__NotSeller.selector);
         escrow.approvedBySeller();
     }
+
+    /*//////////////////////////
+             Release if agreed
+    //////////////////////////*/
+    function testReleaseIfAgreed() public {
+        uint256 sellerBalanceBefore = seller.balance;
+        vm.prank(buyer);
+        escrow.approvedByBuyer();
+        vm.prank(seller);
+        escrow.approvedBySeller();
+        assertEq(address(escrow).balance, 0);
+        assertEq(seller.balance, sellerBalanceBefore + AMOUNT);
+    }
 }
