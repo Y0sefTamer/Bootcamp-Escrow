@@ -2,6 +2,14 @@
 pragma solidity ^0.8.27;
 
 contract Escrow {
+    // Custom errors for better gas efficiency
+    error Escrow__NotBuyer();
+    error Escrow__NotSeller();
+    error Escrow__NotArbiter();
+    error Escrow__DisputeNotRaised();
+    error Escrow__TransferFailed();
+    error Escrow__NotAuthorizedToRaiseDispute();
+
     address public buyer;
     address public seller;
     address public arbiter;
@@ -21,41 +29,61 @@ contract Escrow {
     }
 
     function approvedByBuyer() external {
-        require(msg.sender == buyer, "Only buyer can approve");
+        if (msg.sender != buyer) {
+            revert Escrow__NotBuyer();
+        }
+
         buyerApproved = true;
         releaseIfAgreed();
     }
 
     function approvedBySeller() external {
-        require(msg.sender == seller, "Only seller can approve");
+        if (msg.sender != seller) {
+            revert Escrow__NotSeller();
+        }
         sellerApproved = true;
         releaseIfAgreed();
     }
 
     function releaseIfAgreed() internal {
-        if(buyerApproved && sellerApproved && !isDisputedRaised) {
-            (bool success, ) = seller.call{value: amount}("");
-            require(success, "Transfer to seller failed");
+        if (buyerApproved && sellerApproved && !isDisputedRaised) {
+            (bool success,) = seller.call{value: amount}("");
+
+            if (!success) {
+                revert Escrow__TransferFailed();
+            }
         }
-    }   
+    }
 
     function raiseDispute() external {
-        require(msg.sender == buyer || msg.sender == seller, "Only buyer or seller can raise dispute");
+        if (msg.sender != buyer && msg.sender != seller) {
+            revert Escrow__NotAuthorizedToRaiseDispute();
+        }
         isDisputedRaised = true;
     }
 
     function resolveDispute(bool releaseToSeller) external {
-        require(msg.sender == arbiter, "Only arbiter can resolve dispute");
-        require(isDisputedRaised, "No dispute to resolve");
+        if (msg.sender != arbiter) {
+            revert Escrow__NotArbiter();
+        }
+        if (!isDisputedRaised) {
+            revert Escrow__DisputeNotRaised();
+        }
 
-        if(releaseToSeller) {
-            (bool success, ) = seller.call{value: amount}("");
-            require(success, "Transfer to seller failed");
+        if (releaseToSeller) {
+            (bool success,) = seller.call{value: amount}("");
+
+            if (!success) {
+                revert Escrow__TransferFailed();
+            }
         } else {
-            (bool success, ) = buyer.call{value: amount}("");
-            require(success, "Transfer to buyer failed");
+            (bool success,) = buyer.call{value: amount}("");
+
+            if (!success) {
+                revert Escrow__TransferFailed();
+            }
         }
 
         isDisputedRaised = false;
-    }   
+    }
 }
