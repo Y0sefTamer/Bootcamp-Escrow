@@ -9,81 +9,80 @@ contract Escrow {
     error Escrow__DisputeNotRaised();
     error Escrow__TransferFailed();
     error Escrow__NotAuthorizedToRaiseDispute();
+    error Escrow__AlreadyResolved();
 
-    address public buyer;
-    address public seller;
-    address public arbiter;
-
-    uint256 public amount;
+    // State Variables - Gas Optimized with immutable
+    address public immutable i_buyer;
+    address public immutable i_seller;
+    address public immutable i_arbiter;
+    uint256 public immutable i_amount;
 
     bool public buyerApproved;
     bool public sellerApproved;
-
     bool public isDisputedRaised;
+    bool public isResolved; // To prevent multiple releases
 
-    constructor(address _buyer, address _seller, address _arbiter) payable {
-        buyer = _buyer;
-        seller = _seller;
-        arbiter = _arbiter;
-        amount = msg.value;
+    // Modifiers for Clean Architecture
+    modifier onlyBuyer() {
+        if (msg.sender != i_buyer) revert Escrow__NotBuyer();
+        _;
     }
 
-    function approvedByBuyer() external {
-        if (msg.sender != buyer) {
-            revert Escrow__NotBuyer();
-        }
+    modifier onlySeller() {
+        if (msg.sender != i_seller) revert Escrow__NotSeller();
+        _;
+    }
 
+    modifier onlyArbiter() {
+        if (msg.sender != i_arbiter) revert Escrow__NotArbiter();
+        _;
+    }
+
+    constructor(address _buyer, address _seller, address _arbiter) payable {
+        i_buyer = _buyer;
+        i_seller = _seller;
+        i_arbiter = _arbiter;
+        i_amount = msg.value;
+    }
+
+    function approvedByBuyer() external onlyBuyer {
         buyerApproved = true;
         releaseIfAgreed();
     }
 
-    function approvedBySeller() external {
-        if (msg.sender != seller) {
-            revert Escrow__NotSeller();
-        }
+    function approvedBySeller() external onlySeller {
         sellerApproved = true;
         releaseIfAgreed();
     }
 
     function releaseIfAgreed() internal {
-        if (buyerApproved && sellerApproved && !isDisputedRaised) {
-            (bool success,) = seller.call{value: amount}("");
-
-            if (!success) {
-                revert Escrow__TransferFailed();
-            }
+        if (buyerApproved && sellerApproved && !isDisputedRaised && !isResolved) {
+            isResolved = true; // State updated before external call (CEI Pattern)
+            (bool success,) = i_seller.call{value: i_amount}("");
+            if (!success) revert Escrow__TransferFailed();
         }
     }
 
     function raiseDispute() external {
-        if (msg.sender != buyer && msg.sender != seller) {
+        if (msg.sender != i_buyer && msg.sender != i_seller) {
             revert Escrow__NotAuthorizedToRaiseDispute();
         }
         isDisputedRaised = true;
     }
 
-    function resolveDispute(bool releaseToSeller) external {
-        if (msg.sender != arbiter) {
-            revert Escrow__NotArbiter();
-        }
-        if (!isDisputedRaised) {
-            revert Escrow__DisputeNotRaised();
-        }
-
-        if (releaseToSeller) {
-            (bool success,) = seller.call{value: amount}("");
-
-            if (!success) {
-                revert Escrow__TransferFailed();
-            }
-        } else {
-            (bool success,) = buyer.call{value: amount}("");
-
-            if (!success) {
-                revert Escrow__TransferFailed();
-            }
-        }
+    function resolveDispute(bool releaseToSeller) external onlyArbiter {
+        if (!isDisputedRaised) revert Escrow__DisputeNotRaised();
+        if (isResolved) revert Escrow__AlreadyResolved();
 
         isDisputedRaised = false;
+        isResolved = true;
+
+        if (releaseToSeller) {
+            (bool success,) = i_seller.call{value: i_amount}("");
+            if (!success) revert Escrow__TransferFailed();
+        } else {
+            (bool success,) = i_buyer.call{value: i_amount}("");
+            if (!success) revert Escrow__TransferFailed();
+        }
     }
 }

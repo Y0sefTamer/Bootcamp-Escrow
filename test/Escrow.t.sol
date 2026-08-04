@@ -28,10 +28,10 @@ contract EscrowTest is Test {
     //////////////////////////*/
 
     function testConstructor() public view {
-        assertEq(escrow.buyer(), buyer);
-        assertEq(escrow.seller(), seller);
-        assertEq(escrow.arbiter(), arbiter);
-        assertEq(escrow.amount(), AMOUNT);
+        assertEq(escrow.i_buyer(), buyer);
+        assertEq(escrow.i_seller(), seller);
+        assertEq(escrow.i_arbiter(), arbiter);
+        assertEq(escrow.i_amount(), AMOUNT);
         assertEq(address(escrow).balance, AMOUNT);
         assertFalse(escrow.buyerApproved());
         assertFalse(escrow.sellerApproved());
