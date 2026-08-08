@@ -12,7 +12,7 @@ A foundational Escrow smart contract project built as part of a Web3 Solidity Bo
 
 ## 🛠️ Tech Stack
 
-* **Smart Contracts:** Solidity `^0.8.20`
+* **Smart Contracts:** Solidity `^0.8.27`
 * **Framework:** Foundry
 * **Testing:** Chai / Mocha / Ethers.js
 
