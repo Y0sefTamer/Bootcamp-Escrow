@@ -21,4 +21,3 @@ A foundational Escrow smart contract project built as part of a Web3 Solidity Bo
 2. **Holding:** The ETH remains locked inside the smart contract. No one, not even the Depositor or the Arbiter, can withdraw it for themselves.
 3. **Approval:** Once the agreed-upon off-chain conditions are met (e.g., a service is delivered), the **Arbiter** calls the `approve()` function.
 4. **Release:** The contract automatically transfers the locked ETH to the **Seller**.
-
